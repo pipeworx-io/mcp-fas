@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.pipeworx-io/fas",
-  "title": "fas",
+  "title": "Fas",
   "description": "FAS MCP — USDA Foreign Agricultural Service (trade & global production data)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://pipeworx.io/packs/fas",
   "repository": {
     "url": "https://github.com/pipeworx-io/mcp-fas",
