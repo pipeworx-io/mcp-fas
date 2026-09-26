@@ -3,7 +3,7 @@
   "name": "io.github.pipeworx-io/fas",
   "title": "Fas",
   "description": "FAS MCP — USDA Foreign Agricultural Service (trade & global production data)",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "websiteUrl": "https://pipeworx.io/packs/fas",
   "repository": {
     "url": "https://github.com/pipeworx-io/mcp-fas",
