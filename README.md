@@ -1,17 +1,26 @@
-# mcp-fas
+# @pipeworx/fas
 
-FAS MCP — USDA Foreign Agricultural Service (trade & global production data)
+USDA Foreign Agricultural Service MCP — global production, supply and distribution (PSD) estimates by commodity and country.
 
-Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1683+ live data sources.
+Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1689+ live data sources. This is an independent, unofficial integration — not affiliated with, endorsed by, or published by the upstream provider.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `fas_exports` | Check US agricultural exports by commodity and destination. Returns export volumes, values, and trade partner details. Use fas_commodity_codes to find commodity codes (e.g., "corn", "wheat"). |
-| `fas_imports` | Check US agricultural imports by commodity and origin country. Returns import volumes, values, and source country details. Use fas_commodity_codes to find commodity codes (e.g., "coffee", "cocoa"). |
-| `fas_production` | Get global agricultural production, consumption, and inventory data by commodity and country. Returns production volumes, supply estimates, consumption figures, and trade flows by year. |
-| `fas_commodity_codes` | Search agricultural commodity codes and names. Returns commodity IDs, descriptions, and categories. Use results with fas_production, fas_exports, and fas_imports. |
+- `fas_production(commodity, country?, market_year?)` — PSD rows (production, consumption, stocks, trade totals) for a commodity, world-wide or for one country. Accepts a commodity name ("corn") or PSD code ("0440000"); walks back up to two market years when the current one is not yet published.
+- `fas_commodity_codes(category?, search?)` — the bundled list of PSD commodity codes and common country codes.
+
+### Agricultural trade (exports / imports)
+
+`fas_exports` and `fas_imports` were removed on 2026-10-06 (fleet #2704). They never returned data — every call answered "use comtrade". For US or global agricultural trade by commodity and partner, call the keyless **comtrade** pack: `comtrade_trade_data`, `comtrade_top_partners`, `comtrade_top_commodities`.
+
+## Auth
+
+Platform key. FAS OpenData sits on the api.data.gov umbrella and now requires a key; the gateway injects the shared data.gov platform key. A caller may pass their own as `_apiKey`. With no key, `fas_production` returns `api_key_required` with the signup link instead of failing.
+
+## Data sources
+
+- PSD API: `https://api.fas.usda.gov/api/psd`
+- Key signup: https://apps.fas.usda.gov/opendataweb/
 
 ## Quick Start
 
@@ -57,19 +66,19 @@ directly, instead of just this one's:
 }
 ```
 
-Both URLs reach the same gateway and the same 1683+ data sources. The
+Both URLs reach the same gateway and the same 1689+ data sources. The
 only difference is which pack's tools are listed **directly**; `ask_pipeworx`
 reaches all of them from either one.
 
 ## No MCP client? Call it over HTTP
 
 ```bash
-curl -X POST https://gateway.pipeworx.io/v1/tools/fas_exports \
+curl -X POST https://gateway.pipeworx.io/v1/tools/fas_production \
   -H 'Content-Type: application/json' \
-  -d '{"commodity":"corn","country":"CN","start_year":"2020","end_year":"2024"}'
+  -d '{"commodity":"corn","country":"US","market_year":"2024"}'
 ```
 
-No account needed for the first calls. Inspect any tool: `GET https://gateway.pipeworx.io/v1/tools/fas_exports`. Find one: `POST https://gateway.pipeworx.io/v1/tools/search_packs` with `{"query":"..."}`.
+No account needed for the first calls. Inspect any tool: `GET https://gateway.pipeworx.io/v1/tools/fas_production`. Find one: `POST https://gateway.pipeworx.io/v1/tools/search_packs` with `{"query":"..."}`.
 
 ## Standalone (no gateway account)
 

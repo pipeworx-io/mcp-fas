@@ -683,10 +683,12 @@ function collapse(s: string): string {
  * sources (NASS Quick Stats, EIA, FRED).
  *
  * Tools:
- * - fas_exports: US agricultural export data by commodity and destination
- * - fas_imports: US agricultural import data by commodity and origin
  * - fas_production: World production estimates (PSD data)
  * - fas_commodity_codes: List available commodity codes for PSD queries
+ *
+ * fas_exports / fas_imports were removed 2026-10-06 (fleet #2704): they could
+ * only ever answer "use comtrade". Agricultural trade by commodity and partner
+ * is served by the keyless "comtrade" pack (comtrade_trade_data et al.).
  */
 
 
@@ -818,56 +820,23 @@ async function fasGet(baseUrl: string, path: string, params?: Record<string, str
   return res.json();
 }
 
-// FAS OpenData now gates psd/gats behind a (free) API key. When Pipeworx has no
-// key configured, don't burn a doomed round-trip — return an actionable
-// api_key_required with the keyless sources we already host for the same data.
-function fasKeyRequired(kind: 'trade' | 'production') {
-  const alt =
-    kind === 'trade'
-      ? 'For US/global agricultural exports & imports by commodity and partner, use the keyless "comtrade" pack (UN Comtrade) — e.g. comtrade_trade_data / comtrade_top_partners.'
-      : 'For US crop production and prices, use the keyless "nass" pack (nass_crop_production / nass_query). For global supply/demand, FAS PSD is the only source and needs the key below.';
+// FAS OpenData now gates psd behind a (free) API key. When Pipeworx has no key
+// configured, don't burn a doomed round-trip — return an actionable
+// api_key_required with the keyless sources we already host for related data.
+function fasKeyRequired() {
   return {
     error: 'api_key_required',
     message:
-      'The USDA FAS OpenData API (psd/gats) now requires a free API key, which Pipeworx has not configured for this pack. Register at https://apps.fas.usda.gov/opendataweb/ and pass it as _apiKey to use fas_exports / fas_imports / fas_production.',
+      'The USDA FAS OpenData API (psd) now requires a free API key, which Pipeworx has not configured for this pack. Register at https://apps.fas.usda.gov/opendataweb/ and pass it as _apiKey to use fas_production.',
     signup_hint: 'https://apps.fas.usda.gov/opendataweb/',
-    keyless_alternative: alt,
+    keyless_alternative:
+      'For US crop production and prices, use the keyless "nass" pack (nass_crop_production / nass_query). For global supply/demand, FAS PSD is the only source and needs the key below.',
   };
 }
 
 // ── Tool definitions ──────────────────────────────────────────────────
 
 const tools: McpToolExport['tools'] = [
-  {
-    name: 'fas_exports',
-    description:
-      'Check US agricultural exports by commodity and destination. Returns export volumes, values, and trade partner details. Use fas_commodity_codes to find commodity codes (e.g., "corn", "wheat").',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        commodity: { type: 'string', description: 'Commodity name (e.g., "corn", "soybeans", "wheat", "beef", "pork", "cotton") or commodity code' },
-        country: { type: 'string', description: 'Destination country code (e.g., "CN" for China, "MX" for Mexico, "JP" for Japan). Optional — omit for all destinations.' },
-        start_year: { type: 'string', description: 'Start year (e.g., "2020"). Optional.' },
-        end_year: { type: 'string', description: 'End year (e.g., "2024"). Optional.' },
-      },
-      required: ['commodity'],
-    },
-  },
-  {
-    name: 'fas_imports',
-    description:
-      'Check US agricultural imports by commodity and origin country. Returns import volumes, values, and source country details. Use fas_commodity_codes to find commodity codes (e.g., "coffee", "cocoa").',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        commodity: { type: 'string', description: 'Commodity name (e.g., "coffee", "cocoa", "sugar", "beef") or commodity code' },
-        country: { type: 'string', description: 'Origin country code (e.g., "BR" for Brazil, "CO" for Colombia). Optional — omit for all origins.' },
-        start_year: { type: 'string', description: 'Start year (optional)' },
-        end_year: { type: 'string', description: 'End year (optional)' },
-      },
-      required: ['commodity'],
-    },
-  },
   {
     name: 'fas_production',
     description:
@@ -885,7 +854,7 @@ const tools: McpToolExport['tools'] = [
   {
     name: 'fas_commodity_codes',
     description:
-      'Search agricultural commodity codes and names. Returns commodity IDs, descriptions, and categories. Use results with fas_production, fas_exports, and fas_imports.',
+      'Search agricultural commodity codes and names. Returns commodity IDs, descriptions, and categories. Use results with fas_production.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -902,18 +871,14 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
   API_KEY = typeof args._apiKey === 'string' && args._apiKey.trim() ? args._apiKey.trim() : null;
   delete args._apiKey;
 
-  // Only fas_production hits the keyed PSD API. fas_exports/imports redirect to
-  // the keyless comtrade pack; fas_commodity_codes is bundled static data.
+  // Only fas_production hits the keyed PSD API; fas_commodity_codes is bundled
+  // static data.
   if (!API_KEY && name === 'fas_production') {
-    return fasKeyRequired('production');
+    return fasKeyRequired();
   }
 
   try {
     switch (name) {
-      case 'fas_exports':
-        return await getExports(args);
-      case 'fas_imports':
-        return await getImports(args);
       case 'fas_production':
         return await getProduction(args);
       case 'fas_commodity_codes':
@@ -924,7 +889,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
   } catch (e) {
     // A configured-but-invalid key bubbles up from fasGet — translate it.
     if (e instanceof Error && e.message === 'FAS_KEY_INVALID') {
-      const r = fasKeyRequired(name === 'fas_production' ? 'production' : 'trade');
+      const r = fasKeyRequired();
       r.message = 'The configured USDA FAS OpenData API key was rejected (invalid or expired). ' + r.message;
       return r;
     }
@@ -933,33 +898,6 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
 }
 
 // ── Tool implementations ─────────────────────────────────────────────
-
-// GATS trade (exports/imports) on the new api.fas.usda.gov is organized by
-// partner + year + month over HS codes — a poor fit for this pack's
-// commodity-centric interface, and US/global agricultural trade by commodity &
-// partner is already fully covered keyless by the "comtrade" pack (UN Comtrade).
-// Point callers there rather than ship a brittle HS-code GATS rewrite.
-function gatsTradeRedirect(direction: 'exports' | 'imports', args: Record<string, unknown>) {
-  const commodity = args.commodity as string;
-  return {
-    error: 'use_comtrade',
-    message: `FAS GATS ${direction} data is best served by the keyless "comtrade" pack (UN Comtrade), which returns ${direction} by commodity and partner directly.`,
-    use_instead: {
-      pack: 'comtrade',
-      tools: 'comtrade_trade_data (bilateral flows), comtrade_top_partners, comtrade_top_commodities',
-      example: `comtrade_trade_data for "${commodity}" ${direction}${args.country ? ` with ${String(args.country)}` : ''}.`,
-    },
-    note: 'For global production/supply/consumption estimates (not trade), use fas_production — that is FAS-unique and now live.',
-  };
-}
-
-async function getExports(args: Record<string, unknown>) {
-  return gatsTradeRedirect('exports', args);
-}
-
-async function getImports(args: Record<string, unknown>) {
-  return gatsTradeRedirect('imports', args);
-}
 
 // PSD data rows carry numeric attributeId / unitId / countryCode — the human
 // labels live in separate reference endpoints. Cache them (they're static) and
@@ -1085,7 +1023,7 @@ function getCommodityCodes(args: Record<string, unknown>) {
     total: filtered.length,
     categories: grouped,
     country_codes: COUNTRY_CODES,
-    note: 'Use commodity codes with fas_production, fas_exports, and fas_imports. Country codes are ISO 2-letter codes.',
+    note: 'Use commodity codes with fas_production. Country codes are ISO 2-letter codes. For agricultural trade (exports/imports by commodity and partner) use the comtrade pack.',
   };
 }
 
