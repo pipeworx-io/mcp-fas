@@ -1,0 +1,43 @@
+[
+  {
+    "name": "fas_production",
+    "description": "Get global agricultural production, consumption, and inventory data by commodity and country. Returns production volumes, supply estimates, consumption figures, and trade flows by year.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "commodity": {
+          "type": "string",
+          "description": "Commodity name (e.g., \"corn\", \"soybeans\", \"wheat\") or PSD commodity code (e.g., \"0440000\")"
+        },
+        "country": {
+          "type": "string",
+          "description": "Country code (e.g., \"US\", \"BR\", \"CN\"). Optional — omit for world totals."
+        },
+        "market_year": {
+          "type": "string",
+          "description": "Market year (e.g., \"2024\"). Optional."
+        }
+      },
+      "required": [
+        "commodity"
+      ]
+    }
+  },
+  {
+    "name": "fas_commodity_codes",
+    "description": "Search agricultural commodity codes and names. Returns commodity IDs, descriptions, and categories. Use results with fas_production.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Filter by category: \"Grains\", \"Oilseeds\", \"Meat\", \"Dairy\", \"Fiber\", \"Sugar\", \"Tropical\" (optional)"
+        },
+        "search": {
+          "type": "string",
+          "description": "Search keyword (e.g., \"soy\", \"wheat\"). Optional."
+        }
+      }
+    }
+  }
+]
