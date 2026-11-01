@@ -1,6 +1,6 @@
 {
   "name": "@pipeworx/mcp-fas",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "FAS MCP — USDA Foreign Agricultural Service (trade & global production data)",
   "type": "module",
   "main": "lib/index.js",
@@ -27,7 +27,7 @@
     "mode": "gateway",
     "slug": "fas",
     "gatewaySlug": "fas",
-    "sourceHash": "v1-55c98b819505e5ff5cd58a07f8f4c5dbd172954f1e4b729402920e78a73b68ff",
-    "sourceCommit": "bb047243cf27f32453103de186b8e6a8b6a1ce79"
+    "sourceHash": "v1-c188edee792e9d08d8f181fe1f5b0ccb01c9ac710cd3ab6bef16efca0661efea",
+    "sourceCommit": "d35e32c1ffe988e24d391dedb35666387fd2b3d6"
   }
 }
